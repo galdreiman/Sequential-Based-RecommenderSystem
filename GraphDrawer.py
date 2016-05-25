@@ -75,8 +75,11 @@ class GraphDrawer():
         """
         for key in testset.keys():
             print '---   {}   ---'.format(key)
-            for p in testset[key]:
-                print p
+            sequence = testset[key]
+            seq_length = len(sequence)
+
+
+
 
     def insert_states(self, states):
 
