@@ -2,6 +2,7 @@ import csv
 from numpy import genfromtxt
 from GraphDrawer import GraphDrawer
 from Purchase import Purchase
+from Click import Click
 import Config
 
 
@@ -15,7 +16,7 @@ class RecSys:
         #------------------------------------------------------------------
         # create the training & test sets, skipping the header row with [1:]
         # trainset = self.read_csv_file('Data/buys_small.dat')
-        trainset, testset = self.read_csv_file('Data/buys_small.dat')
+        trainset, testset = self.read_csv_file(Config.DATA_FILENAME)
         # self.print_session(trainset,'140806')
 
         graph = GraphDrawer(trainset)
@@ -26,6 +27,7 @@ class RecSys:
         # graph.print_edges_data()
         # graph.print_successors(('-1', '-1', '1046'))
         graph.predict(testset)
+        # graph.draw()
 
 
     def print_session(self,dataset, sessionID):
@@ -41,10 +43,17 @@ class RecSys:
             spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
             for row in spamreader:
                 sessionId = row[0]
-                if sessionId not in dataset:
-                    dataset[sessionId] = [Purchase(row[1:])]
+                if Config.DATA_TYPE == Config.PURCHASES:
+                    if sessionId not in dataset:
+                        dataset[sessionId] = [Purchase(row[1:])]
+                    else:
+                        dataset[sessionId].append(Purchase(row[1:]))
                 else:
-                    dataset[sessionId].append(Purchase(row[1:]))
+                    if Config.DATA_TYPE == Config.CLICKS:
+                        if sessionId not in dataset:
+                            dataset[sessionId] = [Click(row[1:])]
+                        else:
+                            dataset[sessionId].append(Click(row[1:]))
 
         # split the dataset into trainset and testset
         trainset_size = int(len(dataset) * Config.TRAINSET_SIZE)

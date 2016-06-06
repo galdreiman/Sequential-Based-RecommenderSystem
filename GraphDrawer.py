@@ -1,6 +1,7 @@
 import sys
 import networkx as nx
 import Config
+import time
 
 
 
@@ -9,7 +10,9 @@ class GraphDrawer():
     def __init__(self, dataset):
         self.dataset = dataset
         self.Graph = nx.DiGraph()
-        self.K = 3
+        self.K = 2
+        self.items = dict()
+
 
 
     def build_graph(self):
@@ -19,6 +22,14 @@ class GraphDrawer():
             session_states = self.extract_states(session_purchases)
             self.insert_states(session_states)
         # self.print_edges_data()
+        self.mark_popular_item()
+
+    def mark_popular_item(self):
+        max = 0
+        for item in self.items.keys():
+            if self.items[item] > max:
+                max = self.items[item]
+                self.most_popular_item = item
 
     def print_all_nodes(self):
         for n in self.Graph.nodes(): print str(n)
@@ -33,6 +44,11 @@ class GraphDrawer():
     def print_edges_data(self):
         for edge in self.Graph.edges():
             print '{0} -->  {1}    {2}'.format(edge[0], edge[1],self.Graph.get_edge_data(edge[0], edge[1], None))
+
+    def draw(self):
+        # nx.draw(self.Graph)
+        nx.draw_networkx(self.Graph)
+        time.sleep(10)
 
     def fit(self):
         """
@@ -74,11 +90,31 @@ class GraphDrawer():
                 1.3 save the
         """
         for key in testset.keys():
-            print '---   {}   ---'.format(key)
             sequence = testset[key]
             seq_length = len(sequence)
+            if seq_length > 1:
+                actual = sequence[-1].itemID
+                prediction = self.__predict_sequence__(sequence[:-1])
+                if prediction != None:
+                    print 'prediction[{0}]  actual[{1}]  success[{2}]'.format(prediction,actual,prediction[-1]==actual)
 
+    def __predict_sequence__(self,sequence):
+        states = self.extract_states(sequence)
+        last_state = states[-1]
+        best_succ = None
+        if self.Graph.__contains__(last_state):
+            successors = self.Graph.successors(last_state)
+            max_weight = 0
+            for succ in successors:
+                edge = self.Graph[last_state][succ]
+                if int(edge[Config.WEIGHT]) > max_weight:
+                    max_weight = edge[Config.WEIGHT]
+                    best_succ = succ[-1]
+                # print '{0}  --->   {1}  count[{2}]  weight[{3}]'.format(last_state,succ,edge[Config.COUNT], edge[Config.WEIGHT])
+        else:
+            best_succ = self.most_popular_item
 
+        return best_succ
 
 
     def insert_states(self, states):
@@ -89,27 +125,36 @@ class GraphDrawer():
 
         # insert all edges:
         for i in range(len(states) -1):
-            self.add_to_edge(states[i], states[i+1], Config.COUNT, 3)
+            self.add_to_edge(states[i], states[i+1], Config.COUNT, 1)
         # in this case there are nodes without a successor
         # therefore we need to handle them by finding the closest node/nodes and
         # connect them with a new edge
         if len(states) == 1:
             for node in states:
-                if node[0] == '-1' and node[1] == '-1':
-                    # this is the case of there is only one item in a state(sequence of purchases)
-                    # and now we're going to find all state that this item is in
-                    # then, add edges accordingly
-                    item = node[2]
-                    for s in self.Graph.nodes():
-                        if (item == s[0] or item == s[1]) and s != node:
-                            self.add_to_edge(node,s,Config.COUNT,1)
-                else:
-                    first_item = node[1]
-                    second_item = node[2]
-                    for s in self.Graph.nodes():
-                        if s[0] == first_item and s[1] == second_item:
-                            if s != node:
+                if self.K == 3:
+                    if node[0] == '-1' and node[1] == '-1':
+                        # this is the case of there is only one item in a state(sequence of purchases)
+                        # and now we're going to find all state that this item is in
+                        # then, add edges accordingly
+                        item = node[2]
+                        for s in self.Graph.nodes():
+                            if s[0] == '-1' and item == s[1] and s != node:
                                 self.add_to_edge(node,s,Config.COUNT,1)
+                    else:
+                        first_item = node[1]
+                        second_item = node[2]
+                        for s in self.Graph.nodes():
+                            if s[0] == first_item and s[1] == second_item:
+                                if s != node:
+                                    self.add_to_edge(node,s,Config.COUNT,1)
+                if self.K == 2:
+                    if node[0] == '-1':
+                        item = node[1]
+                        for s in self.Graph.nodes():
+                            if s[1] == item and s != node:
+                                self.add_to_edge(node,s,Config.COUNT,1)
+
+
 
 
 
@@ -123,7 +168,8 @@ class GraphDrawer():
     def extract_states(self,purchases):
         items = []
         for purchase in purchases:
-            items.append(purchase.price)
+            items.append(purchase.itemID)
+            self.count_item(purchase.itemID)
         items_length = len(items)
         if items_length < 3:
             for i in range(self.K - items_length):
@@ -132,4 +178,9 @@ class GraphDrawer():
         states = zip(*(items[i:] for i in range(self.K)))
         return states
 
+    def count_item(self, itemID):
+        if itemID in self.items:
+            self.items[itemID] += 1
+        else:
+            self.items[itemID] = 1
 
