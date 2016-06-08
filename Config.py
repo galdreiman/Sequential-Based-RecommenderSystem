@@ -6,6 +6,9 @@ TRAINSET_SIZE = 0.85
 DATA_FILENAME = 'Data/clicks_small.dat'
 # DATA_FILENAME = 'Data/clicks.dat'
 
+PRED_PROB = 'predict_probability'
+PRED_ITEMS  = 'predicted_items'
+
 
 CLICKS = 'clicks'
 PURCHASES = 'Purchases'

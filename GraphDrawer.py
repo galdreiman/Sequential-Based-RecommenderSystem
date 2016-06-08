@@ -2,27 +2,31 @@ import sys
 import networkx as nx
 import Config
 import time
-
+import matplotlib.pyplot as plt
+from sklearn.metrics import roc_curve
+from Statistics import Statistics
 
 
 class GraphDrawer():
 
-    def __init__(self, dataset):
-        self.dataset = dataset
+    def __init__(self):
+        self.dataset = None
         self.Graph = nx.DiGraph()
         self.K = 2
         self.items = dict()
+        self.stats = Statistics()
 
 
-
-    def build_graph(self):
-
+    def build_graph(self, dataset):
+        self.dataset = dataset
         for sessionID in self.dataset.keys():
             session_purchases = self.dataset[sessionID]
             session_states = self.extract_states(session_purchases)
             self.insert_states(session_states)
         # self.print_edges_data()
         self.mark_popular_item()
+        self.stats.num_of_edges = self.Graph.number_of_edges()
+        self.stats.num_of_nodes = self.Graph.number_of_nodes()
 
     def mark_popular_item(self):
         max = 0
@@ -47,12 +51,17 @@ class GraphDrawer():
 
     def draw(self):
         # nx.draw(self.Graph)
-        nx.draw_networkx(self.Graph)
-        time.sleep(10)
+        # nx.draw_networkx(self.Graph)
+        pos = nx.shell_layout(self.Graph)
+        nx.draw(self.Graph, pos)
+
+        # show graph
+        plt.show()
+        raw_input('press any key to continue')
 
     def fit(self):
         """
-        this method goes over all nodes and count the number of out edges,
+        this method goes over all nodes and counts the number of out edges,
         then, it normalize the weight of each edge according to:
             for each node t in successor(s) do:
                 sum += weight(s,t)
@@ -61,8 +70,7 @@ class GraphDrawer():
         :return: void
         """
         nodes = self.Graph.nodes()
-        print "---- len = {0}".format(len(nodes))
-        print self.Graph.number_of_nodes()
+        print "---- number of nodes in the graph = {0}".format(len(nodes))
         for curr_node in nodes:
             node_successors = self.Graph.successors(curr_node)
             sum = 0
@@ -89,32 +97,81 @@ class GraphDrawer():
                 1.2 predict the last item using the model
                 1.3 save the
         """
+        y_true = []
+        y_score = []
         for key in testset.keys():
             sequence = testset[key]
             seq_length = len(sequence)
             if seq_length > 1:
                 actual = sequence[-1].itemID
-                prediction = self.__predict_sequence__(sequence[:-1])
-                if prediction != None:
-                    print 'prediction[{0}]  actual[{1}]  success[{2}]'.format(prediction,actual,prediction[-1]==actual)
+                prediction, is_popularity_prediction = self.__predict_sequence__(sequence[:-1])
+
+                if prediction != None and is_popularity_prediction:
+                    y_true.append(1)
+                    if actual in prediction[Config.PRED_ITEMS]:
+                        y_score.append(1)
+                        self.stats.correct_prediction()
+                    else:
+                        y_score.append(0)
+                        self.stats.incorrect_prediction()
+                    # print '**************'
+                    # raw_seq = [x.itemID for x in sequence]
+                    # print raw_seq
+                    # print 'prediction[{0}]  actual[{1}]  success[{2}]'.format(prediction[Config.PRED_ITEMS], actual, actual in prediction[Config.PRED_ITEMS])
+                    # print '----------------------'
+                    # print ' '
+        return y_true,y_score
+
+    def roc(self,y_true, y_score):
+        # The random forest model by itself
+        fpr_rf, tpr_rf, _ = roc_curve(y_true, y_score)
+        print y_true
+        print y_score
+
+        plt.figure(1)
+        plt.plot([0, 1], [0, 1], 'k--')
+        plt.plot(fpr_rf, tpr_rf) #, label='RF')
+        plt.xlabel('False positive rate')
+        plt.ylabel('True positive rate')
+        plt.title('ROC curve')
+        plt.legend(loc='best')
+        plt.show()
+
+
+
+    def print_prediction_stats(self):
+        self.stats.print_prediction_stats()
 
     def __predict_sequence__(self,sequence):
         states = self.extract_states(sequence)
         last_state = states[-1]
-        best_succ = None
+        best_succ = dict()
+        best_succ[Config.PRED_PROB] = 0.0
+        best_succ[Config.PRED_ITEMS] = []
+
+        is_popularity_prediction = False
         if self.Graph.__contains__(last_state):
             successors = self.Graph.successors(last_state)
-            max_weight = 0
+            max_weight = 0.0
             for succ in successors:
                 edge = self.Graph[last_state][succ]
-                if int(edge[Config.WEIGHT]) > max_weight:
-                    max_weight = edge[Config.WEIGHT]
-                    best_succ = succ[-1]
-                # print '{0}  --->   {1}  count[{2}]  weight[{3}]'.format(last_state,succ,edge[Config.COUNT], edge[Config.WEIGHT])
-        else:
-            best_succ = self.most_popular_item
+                max_weight = edge[Config.WEIGHT]
+                if float(edge[Config.WEIGHT]) > max_weight:
+                    best_succ[Config.PRED_PROB] = max_weight
+                    best_succ[Config.PRED_ITEMS] = [succ[-1]]
+                else:
+                    if float(edge[Config.WEIGHT]) == max_weight:
+                        best_succ[Config.PRED_PROB] = max_weight
+                        best_succ[Config.PRED_ITEMS].append(succ[-1])
 
-        return best_succ
+                # print '{0}  --->   {1}  count[{2}]  weight[{3}]'.format(last_state,succ,edge[Config.COUNT], edge[Config.WEIGHT])
+                is_popularity_prediction = True
+        else:
+            best_succ[Config.PRED_PROB] = 0.0
+            best_succ[Config.PRED_ITEMS].append(self.most_popular_item)
+            # print 'popularity:  last state: {0} best: {1}'.format(last_state, best_succ)
+
+        return best_succ, is_popularity_prediction
 
 
     def insert_states(self, states):
@@ -176,6 +233,8 @@ class GraphDrawer():
                 items.insert(0,'-1')
 
         states = zip(*(items[i:] for i in range(self.K)))
+        # for p in purchases: print p
+        # print states
         return states
 
     def count_item(self, itemID):

@@ -4,6 +4,7 @@ from GraphDrawer import GraphDrawer
 from Purchase import Purchase
 from Click import Click
 import Config
+from Statistics import Statistics
 
 
 class RecSys:
@@ -19,15 +20,17 @@ class RecSys:
         trainset, testset = self.read_csv_file(Config.DATA_FILENAME)
         # self.print_session(trainset,'140806')
 
-        graph = GraphDrawer(trainset)
-        graph.build_graph()
+        graph = GraphDrawer()
+        graph.build_graph(trainset)
         graph.fit()
         #graph.print_all_edges()
         # graph.print_all_nodes()
         # graph.print_edges_data()
         # graph.print_successors(('-1', '-1', '1046'))
-        graph.predict(testset)
+        y_true, y_score = graph.predict(testset)
         # graph.draw()
+        graph.print_prediction_stats()
+        # graph.roc(y_true, y_score)
 
 
     def print_session(self,dataset, sessionID):
