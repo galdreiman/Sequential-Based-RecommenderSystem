@@ -1,7 +1,5 @@
-import sys
 import networkx as nx
 import Config
-import time
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve
 from Statistics import Statistics
@@ -124,18 +122,38 @@ class GraphDrawer():
 
     def roc(self,y_true, y_score):
         # The random forest model by itself
-        fpr_rf, tpr_rf, _ = roc_curve(y_true, y_score)
-        print y_true
-        print y_score
+        # fpr_rf, tpr_rf, _ = roc_curve(y_true, y_score)
+        # print y_true
+        # print y_score
 
-        plt.figure(1)
-        plt.plot([0, 1], [0, 1], 'k--')
-        plt.plot(fpr_rf, tpr_rf) #, label='RF')
-        plt.xlabel('False positive rate')
-        plt.ylabel('True positive rate')
-        plt.title('ROC curve')
-        plt.legend(loc='best')
-        plt.show()
+        from collections import Counter
+
+        # make confusion matrix
+        confusion_matrix = Counter()
+        for t, p in zip(y_true, y_score):
+            confusion_matrix[t,p] += 1
+
+        # print confusion matrix
+        labels = set(y_true + y_score)
+        print
+        print "t/p",
+        for p in sorted(labels):
+            print p,
+        print
+        for t in sorted(labels):
+            print t,
+            for p in sorted(labels):
+                print '  ' + str(confusion_matrix[t,p]),
+            print
+
+        # plt.figure(1)
+        # plt.plot([0, 1], [0, 1], 'k--')
+        # plt.plot(fpr_rf, tpr_rf, label='RF')
+        # plt.xlabel('False positive rate')
+        # plt.ylabel('True positive rate')
+        # plt.title('ROC curve')
+        # plt.legend(loc='best')
+        # plt.show()
 
 
 

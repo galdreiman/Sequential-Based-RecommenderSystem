@@ -30,7 +30,7 @@ class RecSys:
         y_true, y_score = graph.predict(testset)
         # graph.draw()
         graph.print_prediction_stats()
-        # graph.roc(y_true, y_score)
+        graph.roc(y_true, y_score)
 
 
     def print_session(self,dataset, sessionID):

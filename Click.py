@@ -12,3 +12,4 @@ class Click():
     def __str__(self):
         str = "timestamp[{0}]  itemID[{1}] category[{2}]".format(self.timestamp, self.itemID, self.category)
         return str
+
