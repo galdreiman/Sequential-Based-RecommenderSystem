@@ -15,10 +15,13 @@ class GraphDrawer():
         self.stats = Statistics()
 
 
-    def build_graph(self, dataset):
+    def build_graph(self, dataset, keys):
         self.dataset = dataset
-        for sessionID in self.dataset.keys():
-            session_purchases = self.dataset[sessionID]
+        for sessionID in keys:
+            try:
+                session_purchases = self.dataset[sessionID]
+            except:
+                print sessionID
             session_states = self.extract_states(session_purchases)
             self.insert_states(session_states)
         # self.print_edges_data()
@@ -107,7 +110,7 @@ class GraphDrawer():
                 if prediction != None and is_popularity_prediction:
                     y_true.append(1)
                     if actual in prediction[Config.PRED_ITEMS]:
-                        y_score.append(1)
+                        y_score.append(prediction[Config.PRED_PROB]) #distanse 0
                         self.stats.correct_prediction()
                     else:
                         y_score.append(0)
@@ -121,44 +124,12 @@ class GraphDrawer():
         return y_true,y_score
 
     def roc(self,y_true, y_score):
-        # The random forest model by itself
-        # fpr_rf, tpr_rf, _ = roc_curve(y_true, y_score)
-        # print y_true
-        # print y_score
-
-        from collections import Counter
-
-        # make confusion matrix
-        confusion_matrix = Counter()
-        for t, p in zip(y_true, y_score):
-            confusion_matrix[t,p] += 1
-
-        # print confusion matrix
-        labels = set(y_true + y_score)
-        print
-        print "t/p",
-        for p in sorted(labels):
-            print p,
-        print
-        for t in sorted(labels):
-            print t,
-            for p in sorted(labels):
-                print '  ' + str(confusion_matrix[t,p]),
-            print
-
-        # plt.figure(1)
-        # plt.plot([0, 1], [0, 1], 'k--')
-        # plt.plot(fpr_rf, tpr_rf, label='RF')
-        # plt.xlabel('False positive rate')
-        # plt.ylabel('True positive rate')
-        # plt.title('ROC curve')
-        # plt.legend(loc='best')
-        # plt.show()
+        self.stats.draw_ROC_curve(y_true,y_score)
 
 
 
-    def print_prediction_stats(self):
-        self.stats.print_prediction_stats()
+    def print_prediction_stats(self,y_true, y_score):
+        self.stats.print_prediction_stats(y_true, y_score)
 
     def __predict_sequence__(self,sequence):
         states = self.extract_states(sequence)

@@ -5,6 +5,7 @@ from Purchase import Purchase
 from Click import Click
 import Config
 from Statistics import Statistics
+import random
 
 
 class RecSys:
@@ -18,20 +19,31 @@ class RecSys:
         # create the training & test sets, skipping the header row with [1:]
         # trainset = self.read_csv_file('Data/buys_small.dat')
         trainset, testset = self.read_csv_file(Config.DATA_FILENAME)
-        # self.print_session(trainset,'140806')
+        train_keys = list(trainset.keys())
 
         graph = GraphDrawer()
-        graph.build_graph(trainset)
+        graph.build_graph(trainset,train_keys)
         graph.fit()
-        #graph.print_all_edges()
-        # graph.print_all_nodes()
-        # graph.print_edges_data()
-        # graph.print_successors(('-1', '-1', '1046'))
         y_true, y_score = graph.predict(testset)
-        # graph.draw()
-        graph.print_prediction_stats()
-        graph.roc(y_true, y_score)
+        graph.print_prediction_stats(y_true, y_score)
 
+        ###########
+        # Shuffle keys for validations:
+        print 'VALIDATION:'
+        shuffled_keys = self.get_shuffled_list(trainset)
+        valid_graph = GraphDrawer()
+        valid_graph.build_graph(trainset,shuffled_keys)
+        valid_graph.fit()
+        valid_y_true, valid_y_score = valid_graph.predict(testset)
+        valid_graph.print_prediction_stats(valid_y_true, valid_y_score)
+
+    def get_shuffled_list(self, trainset):
+        train_keys = list(trainset.keys())
+        # shuffled_keys = random.shuffle(train_keys)
+        x = [[x] for x in train_keys]
+        random.shuffle(x)
+        shuffled_keys = [x[0] for x in x]
+        return shuffled_keys
 
     def print_session(self,dataset, sessionID):
         for p in dataset[sessionID]:
