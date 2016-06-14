@@ -99,7 +99,9 @@ class GraphDrawer():
                 1.3 save the
         """
         y_true = []
+        y_pred = []
         y_score = []
+
         for key in testset.keys():
             sequence = testset[key]
             seq_length = len(sequence)
@@ -110,10 +112,12 @@ class GraphDrawer():
                 if prediction != None and is_popularity_prediction:
                     y_true.append(1)
                     if actual in prediction[Config.PRED_ITEMS]:
+                        y_pred.append(1)
                         y_score.append(prediction[Config.PRED_PROB]) #distanse 0
                         self.stats.correct_prediction()
                     else:
                         y_score.append(0)
+                        y_pred.append(0)
                         self.stats.incorrect_prediction()
                     # print '**************'
                     # raw_seq = [x.itemID for x in sequence]
@@ -121,15 +125,15 @@ class GraphDrawer():
                     # print 'prediction[{0}]  actual[{1}]  success[{2}]'.format(prediction[Config.PRED_ITEMS], actual, actual in prediction[Config.PRED_ITEMS])
                     # print '----------------------'
                     # print ' '
-        return y_true,y_score
+        return y_true,y_score, y_pred
 
     def roc(self,y_true, y_score):
         self.stats.draw_ROC_curve(y_true,y_score)
 
 
 
-    def print_prediction_stats(self,y_true, y_score):
-        self.stats.print_prediction_stats(y_true, y_score)
+    def print_prediction_stats(self,y_true, y_score,y_pred):
+        self.stats.print_prediction_stats(y_true, y_score,y_pred)
 
     def __predict_sequence__(self,sequence):
         states = self.extract_states(sequence)

@@ -24,18 +24,20 @@ class RecSys:
         graph = GraphDrawer()
         graph.build_graph(trainset,train_keys)
         graph.fit()
-        y_true, y_score = graph.predict(testset)
-        graph.print_prediction_stats(y_true, y_score)
+        y_true, y_score, y_pred = graph.predict(testset)
+        graph.print_prediction_stats(y_true, y_score,y_pred)
 
         ###########
         # Shuffle keys for validations:
+        print
         print 'VALIDATION:'
+        print
         shuffled_keys = self.get_shuffled_list(trainset)
         valid_graph = GraphDrawer()
         valid_graph.build_graph(trainset,shuffled_keys)
         valid_graph.fit()
-        valid_y_true, valid_y_score = valid_graph.predict(testset)
-        valid_graph.print_prediction_stats(valid_y_true, valid_y_score)
+        valid_y_true, valid_y_score, valid_y_pred = valid_graph.predict(testset)
+        valid_graph.print_prediction_stats(valid_y_true, valid_y_score,valid_y_pred)
 
     def get_shuffled_list(self, trainset):
         train_keys = list(trainset.keys())
