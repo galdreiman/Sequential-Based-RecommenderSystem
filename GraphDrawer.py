@@ -10,7 +10,7 @@ class GraphDrawer():
     def __init__(self):
         self.dataset = None
         self.Graph = nx.DiGraph()
-        self.K = 2
+        self.K =2
         self.items = dict()
         self.stats = Statistics()
 

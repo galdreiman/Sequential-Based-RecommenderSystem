@@ -26,6 +26,7 @@ class RecSys:
         graph.fit()
         y_true, y_score, y_pred = graph.predict(testset)
         graph.print_prediction_stats(y_true, y_score,y_pred)
+        # graph.draw()
 
         ###########
         # Shuffle keys for validations:
